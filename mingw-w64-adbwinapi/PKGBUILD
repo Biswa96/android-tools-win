@@ -1,0 +1,56 @@
+# Maintainer: Biswapriyo Nath <nathbappai@gmail.com>
+
+_realname=adbwinapi
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=33.0.3
+pkgrel=1
+pkgdesc='ADB API for Windows (mingw-w64)'
+arch=('any')
+mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32')
+url='https://developer.android.com/studio/releases/platform-tools'
+license=('spdx:Apache-2.0')
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake")
+options=('!strip' '!buildflags')
+# https://android.googlesource.com/platform/development.git
+source=(https://github.com/aosp-mirror/platform_development/archive/refs/tags/platform-tools-${pkgver}.tar.gz
+        CMakeLists.txt
+        0001-adbwinusb-fix-build.patch)
+noextract=(platform-tools-${pkgver}.tar.gz)
+sha256sums=('623ddec6ecd991598f4a3ed61ebd9379c964d5fd7d183f60b141458c81bd9794'
+            '9c160650a464bb4fd644b2cf5201ad20018bdf32231ee34cadf2347cdef90426'
+            '7b21439c23ef25d9d94792edb17cd0518b07563cf57e1340b11c437b05cc112b')
+
+prepare() {
+  tar -xf platform-tools-${pkgver}.tar.gz --strip-components=4 \
+  platform_development-platform-tools-${pkgver}/host/windows/usb
+
+  patch -p1 -i "${srcdir}/0001-adbwinusb-fix-build.patch"
+}
+
+build() {
+  declare _build_arch
+
+  if [ "${CARCH}" = "x86_64" ]; then
+    _build_arch="x64"
+  else
+    _build_arch="Win32"
+  fi
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    "${MINGW_PREFIX}"/bin/cmake.exe \
+      -G "Visual Studio 17 2022" \
+      -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
+      -A "${_build_arch}" \
+      -B "build-${MSYSTEM}"
+
+  "${MINGW_PREFIX}"/bin/cmake.exe \
+    --build "build-${MSYSTEM}" \
+    --config Release
+}
+
+package() {
+  cd "${srcdir}/build-${MSYSTEM}"
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install .
+  install -Dm644 "${srcdir}/NOTICE" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
+}

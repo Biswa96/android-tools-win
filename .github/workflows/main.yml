@@ -1,0 +1,32 @@
+name: main
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: base-devel git
+      - name: CI-Build
+        run: |
+          cd mingw-w64-adbwinapi
+          makepkg-mingw --noconfirm --noprogressbar -sCLf --nocheck
+          pacman -U --noconfirm --noprogressbar *.pkg.tar.*
+          cd ../
+          cd mingw-w64-android-tools
+          makepkg-mingw --noconfirm --noprogressbar -sCLf --nocheck
+      - name: "Upload binaries"
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: UCRT64-packages
+          path: |
+            mingw-w64-adbwinapi/*.pkg.tar.*
+            mingw-w64-android-tools/*.pkg.tar.*

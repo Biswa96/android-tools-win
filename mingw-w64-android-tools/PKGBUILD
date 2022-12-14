@@ -1,0 +1,92 @@
+# Maintainer: Biswapriyo Nath <nathbappai@gmail.com>
+
+_realname=android-tools
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=33.0.3
+_tag=${pkgver}p2
+pkgrel=1
+pkgdesc='Android platform tools (mingw-w64)'
+arch=('any')
+mingw_arch=('mingw32' 'mingw64' 'ucrt64' 'clang64' 'clang32')
+url='http://tools.android.com/'
+license=('spdx:Apache-2.0')
+depends=("${MINGW_PACKAGE_PREFIX}-adbwinapi"
+         "${MINGW_PACKAGE_PREFIX}-brotli"
+         "${MINGW_PACKAGE_PREFIX}-libusb"
+         "${MINGW_PACKAGE_PREFIX}-lz4"
+         "${MINGW_PACKAGE_PREFIX}-pcre2"
+         "${MINGW_PACKAGE_PREFIX}-protobuf"
+         "${MINGW_PACKAGE_PREFIX}-zstd")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cc"
+             "${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-go"
+             "${MINGW_PACKAGE_PREFIX}-gtest"
+             "${MINGW_PACKAGE_PREFIX}-nasm"
+             "${MINGW_PACKAGE_PREFIX}-ninja")
+source=("https://github.com/nmeum/android-tools/releases/download/${_tag}/${_realname}-${_tag}.tar.xz"
+        "https://github.com/aosp-mirror/platform_development/archive/refs/tags/platform-tools-${pkgver}.tar.gz"
+        "AdbWinApi.def"
+        "0001-android-tools-cmake.patch"
+        "0002-android-tools-vendor.patch")
+noextract=("android-tools-${_tag}.tar.xz"
+           "platform-tools-${pkgver}.tar.gz")
+sha256sums=('6bf6b52d7389e79fc92b63cc206451ee42fc4f7da769d76922193e98d75f5604'
+            '623ddec6ecd991598f4a3ed61ebd9379c964d5fd7d183f60b141458c81bd9794'
+            'e6fc31c148e120fc69be53e0464434c492ab0eaa0dbc8f18dd3c19eb2dd2577b'
+            'e5c478cb575ec667856121fad3f3c7152a854dce866bc0dc31768783a056a1a0'
+            '580634ad11a555eea65ab68071aa0f77dfe7907eb522a3820bc219001ac0ce52')
+
+# Helper macros to help make tasks easier #
+apply_patch_with_msg() {
+  for _patch in "$@"
+  do
+    msg2 "Applying ${_patch}"
+    patch -Nbp1 -i "${srcdir}/${_patch}"
+  done
+}
+
+prepare() {
+  tar -xf "${_realname}-${_tag}.tar.xz" || true
+
+  cd "${srcdir}/${_realname}-${_tag}"
+  cp -v "${srcdir}"/AdbWinApi.def ./vendor/
+
+  mkdir vendor/development
+  tar -xf "${srcdir}/platform-tools-${pkgver}.tar.gz" \
+    --strip-components=4 \
+    -C vendor/development \
+    platform_development-platform-tools-${pkgver}/host/windows/usb
+
+  apply_patch_with_msg \
+    0001-android-tools-cmake.patch \
+    0002-android-tools-vendor.patch
+}
+
+build() {
+  mkdir -p "${srcdir}/build-${MSYSTEM}" && cd "${srcdir}/build-${MSYSTEM}"
+
+  declare -a extra_config
+  if check_option "debug" "n"; then
+    extra_config+=("-DCMAKE_BUILD_TYPE=Release")
+  else
+    extra_config+=("-DCMAKE_BUILD_TYPE=Debug")
+  fi
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    "${MINGW_PREFIX}"/bin/cmake.exe \
+      -GNinja \
+      -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
+      "${extra_config[@]}" \
+      -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+      -DCMAKE_C_FLAGS="${CFLAGS}" \
+      ../${_realname}-${_tag}
+
+  "${MINGW_PREFIX}"/bin/cmake.exe --build .
+}
+
+package() {
+  cd "${srcdir}/build-${MSYSTEM}"
+  DESTDIR="${pkgdir}" "${MINGW_PREFIX}"/bin/cmake.exe --install .
+  install -Dm644 "${srcdir}/${_realname}-${_tag}/LICENSE" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
+}
