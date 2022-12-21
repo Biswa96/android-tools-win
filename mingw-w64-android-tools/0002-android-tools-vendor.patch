@@ -1,35 +1,3 @@
---- a/vendor/logging/liblog/logger_write.cpp
-+++ b/vendor/logging/liblog/logger_write.cpp
-@@ -16,6 +16,10 @@
- 
- #include "logger_write.h"
- 
-+#if defined(_WIN32)
-+#include <windows.h>
-+#endif
-+
- #include <errno.h>
- #include <inttypes.h>
- #include <libgen.h>
-@@ -48,8 +52,6 @@
- #include <pthread.h>
- #elif defined(__linux__) && !defined(__ANDROID__)
- #include <syscall.h>
--#elif defined(_WIN32)
--#include <windows.h>
- #endif
- 
- using android::base::ErrnoRestorer;
---- a/vendor/core/libsparse/append2simg.cpp
-+++ b/vendor/core/libsparse/append2simg.cpp
-@@ -14,6 +14,7 @@
-  * limitations under the License.
-  */
- 
-+#define _GNU_SOURCE
- #define _FILE_OFFSET_BITS 64
- #define _LARGEFILE64_SOURCE 1
- 
 --- a/vendor/adb/sysdeps/uio.h
 +++ b/vendor/adb/sysdeps/uio.h
 @@ -24,7 +24,7 @@
@@ -57,58 +25,9 @@
  #endif
  
  // Trusty isn't Linux but currently defines __linux__. As a workaround, we
---- a/vendor/core/fastboot/usb.h
-+++ b/vendor/core/fastboot/usb.h
-@@ -51,7 +51,7 @@
-     char serial_number[256];
-     char device_path[256];
- 
--    char interface[256];
-+    char ifc_interface[256];
- };
- 
- class UsbTransport : public Transport {
---- a/vendor/core/fastboot/fastboot.cpp
-+++ b/vendor/core/fastboot/fastboot.cpp
-@@ -278,9 +278,9 @@
- static int list_devices_callback(usb_ifc_info* info) {
-     if (match_fastboot_with_serial(info, nullptr) == 0) {
-         std::string serial = info->serial_number;
--        std::string interface = info->interface;
--        if (interface.empty()) {
--            interface = "fastboot";
-+        std::string ifc_interface = info->ifc_interface;
-+        if (ifc_interface.empty()) {
-+            ifc_interface = "fastboot";
-         }
-         if (!info->writable) {
-             serial = UsbNoPermissionsShortHelpText();
-@@ -290,9 +290,9 @@
-         }
-         // output compatible with "adb devices"
-         if (!g_long_listing) {
--            printf("%s\t%s", serial.c_str(), interface.c_str());
-+            printf("%s\t%s", serial.c_str(), ifc_interface.c_str());
-         } else {
--            printf("%-22s %s", serial.c_str(), interface.c_str());
-+            printf("%-22s %s", serial.c_str(), ifc_interface.c_str());
-             if (strlen(info->device_path) > 0) printf(" %s", info->device_path);
-         }
-         putchar('\n');
---- a/vendor/core/fastboot/usb_windows.cpp
-+++ b/vendor/core/fastboot/usb_windows.cpp
-@@ -319,7 +319,7 @@
-                     &serial_number_len, true)) {
-         info.serial_number[0] = 0;
-     }
--    info.interface[0] = 0;
-+    info.ifc_interface[0] = 0;
- 
-     info.device_path[0] = 0;
- 
 --- a/vendor/boringssl/crypto/CMakeLists.txt
 +++ b/vendor/boringssl/crypto/CMakeLists.txt
-@@ -465,6 +465,9 @@
+@@ -466,6 +466,9 @@
  
  SET_TARGET_PROPERTIES(crypto PROPERTIES LINKER_LANGUAGE C)
  

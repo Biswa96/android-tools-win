@@ -34,15 +34,15 @@ noextract=("android-tools-${_tag}.tar.xz"
 sha256sums=('6bf6b52d7389e79fc92b63cc206451ee42fc4f7da769d76922193e98d75f5604'
             '623ddec6ecd991598f4a3ed61ebd9379c964d5fd7d183f60b141458c81bd9794'
             'e6fc31c148e120fc69be53e0464434c492ab0eaa0dbc8f18dd3c19eb2dd2577b'
-            'e5c478cb575ec667856121fad3f3c7152a854dce866bc0dc31768783a056a1a0'
-            '580634ad11a555eea65ab68071aa0f77dfe7907eb522a3820bc219001ac0ce52')
+            '3d9461bf1cb344ec3f9530576dd3c82fb24c0a629d8d519e776e442d4adc2670'
+            'ab2e231ea17755469d30d35bd2463367ce368ef62d4bb5cfdd4ce1214803c106')
 
 # Helper macros to help make tasks easier #
 apply_patch_with_msg() {
   for _patch in "$@"
   do
     msg2 "Applying ${_patch}"
-    patch -Nbp1 -i "${srcdir}/${_patch}"
+    patch -p1 -i "${srcdir}/${_patch}"
   done
 }
 

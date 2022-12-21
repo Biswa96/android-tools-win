@@ -11,7 +11,7 @@
  set(COMPLETION_COMMON_DIR "${CMAKE_INSTALL_FULL_DATADIR}/android-tools/completions")
 --- a/vendor/CMakeLists.adb.txt
 +++ b/vendor/CMakeLists.adb.txt
-@@ -29,23 +29,37 @@ set(libadb_SOURCES
+@@ -29,23 +29,37 @@
  	adb/pairing_connection/pairing_connection.cpp
  	adb/services.cpp
  	adb/socket_spec.cpp
@@ -54,7 +54,16 @@
  target_compile_definitions(libadb PRIVATE -D_GNU_SOURCE)
  target_compile_definitions(libadb PUBLIC -DADB_HOST=1)
  target_include_directories(libadb PUBLIC
-@@ -104,31 +118,41 @@ target_include_directories(liblog PUBLIC
+@@ -98,37 +112,50 @@
+ 
+ target_compile_definitions(liblog PRIVATE
+ 	-DLIBLOG_LOG_TAG=1006 -D_XOPEN_SOURCE=700 -DFAKE_LOG_DEVICE=1)
++if(WIN32)
++	target_compile_definitions(liblog PRIVATE WIN32_LEAN_AND_MEAN)
++endif()
+ target_include_directories(liblog PUBLIC
+ 	core/include
+ 	logging/liblog/include
  	core/libcutils/include
  	libbase/include)
  
@@ -85,7 +94,7 @@
 -	core/libcutils/threads.cpp)
 +	core/libcutils/threads.cpp
 +	core/libcutils/trace-host.cpp)
-+
+ 
 +if(WIN32)
 +	list(APPEND libcutils_SOURCES
 +		core/libcutils/socket_inaddr_any_server_windows.cpp
@@ -107,12 +116,12 @@
 +		core/libcutils/sockets_unix.cpp
 +		core/libcutils/str_parms.cpp)
 +endif()
- 
++
 +add_library(libcutils STATIC ${libcutils_SOURCES})
  target_compile_definitions(libcutils PRIVATE -D_GNU_SOURCE)
  target_include_directories(libcutils PRIVATE
  	logging/liblog/include core/libutils/include)
-@@ -155,7 +179,7 @@ add_library(libcrypto STATIC
+@@ -155,7 +182,7 @@
  target_include_directories(libcrypto PUBLIC
  	core/libcrypto_utils/include boringssl/include)
  
@@ -121,7 +130,7 @@
  	  adb/adb.cpp
  	  adb/adb_io.cpp
  	  adb/adb_listeners.cpp
-@@ -164,7 +188,6 @@ add_executable(adb
+@@ -164,7 +191,6 @@
  	  adb/adb_utils.cpp
  	  adb/fdevent/fdevent.cpp
  	  adb/fdevent/fdevent_poll.cpp
@@ -129,7 +138,7 @@
  	  adb/shell_service_protocol.cpp
  	  adb/sockets.cpp
  	  adb/socket_spec.cpp
-@@ -175,6 +198,18 @@ add_executable(adb
+@@ -175,6 +201,18 @@
  	  adb/types.cpp
  	  ${ADB_KEY_TYPE_PROTO_HDRS})
  
@@ -148,7 +157,7 @@
  target_include_directories(adb PRIVATE
  	core/include libbase/include adb
  	core/libcrypto_utils/include boringssl/include)
-@@ -200,6 +235,11 @@ target_link_libraries(adb
+@@ -200,6 +238,11 @@
  	PkgConfig::libusb-1.0
  	z
  	PkgConfig::libzstd)
@@ -162,7 +171,7 @@
  	target_link_libraries(adb
 --- a/vendor/CMakeLists.fastboot.txt
 +++ b/vendor/CMakeLists.fastboot.txt
-@@ -50,6 +50,7 @@ target_link_libraries(libfsmgr PUBLIC fmt::fmt)
+@@ -50,6 +50,7 @@
  
  # Only add common sources from libselinux_defaults and libselinux
  # See the file list in selinux/libselinux/Android.bp
@@ -170,7 +179,7 @@
  add_library(libselinux STATIC
  	selinux/libselinux/src/booleans.c
  	selinux/libselinux/src/callbacks.c
-@@ -102,6 +103,7 @@ if(NOT APPLE)
+@@ -102,6 +103,7 @@
  	target_compile_definitions(libsepol PRIVATE
  		-DHAVE_REALLOCARRAY)
  endif()
@@ -178,7 +187,7 @@
  
  set(fastboot_SOURCES
  	core/fastboot/bootimg_utils.cpp
-@@ -115,7 +117,10 @@ set(fastboot_SOURCES
+@@ -115,7 +117,10 @@
  	core/fastboot/vendor_boot_img_utils.cpp
  	core/fastboot/util.cpp)
  
@@ -190,13 +199,13 @@
  	list(APPEND fastboot_SOURCES
  		core/fastboot/usb_osx.cpp)
  else()
-@@ -129,14 +134,24 @@ target_include_directories(fastboot PRIVATE
+@@ -129,14 +134,24 @@
  	extras/ext4_utils/include extras/f2fs_utils
  	core/libziparchive/include mkbootimg/include/bootimg
  	core/fs_mgr/liblp/include core/fs_mgr/libstorage_literals avb)
 +if(WIN32)
-+	target_include_directories(fastboot PRIVATE
-+		development/api)
++	target_compile_definitions(fastboot PRIVATE WIN32_LEAN_AND_MEAN)
++	target_include_directories(fastboot PRIVATE development/api)
 +endif()
  target_compile_definitions(fastboot PRIVATE
  	-D_GNU_SOURCE -D_XOPEN_SOURCE=700 -DUSE_F2FS
@@ -252,6 +261,15 @@
  target_include_directories(libbase PUBLIC
  	libbase/include core/include)
  target_link_libraries(libbase PUBLIC fmt::fmt liblog)
+--- a/vendor/CMakeLists.sparse.txt
++++ b/vendor/CMakeLists.sparse.txt
+@@ -24,3 +24,6 @@
+ 	core/libsparse/append2simg.cpp)
+ target_link_libraries(append2simg
+ 	libsparse z libbase)
++if(WIN32)
++	target_compile_definitions(append2simg PRIVATE _GNU_SOURCE)
++endif()
 --- a/vendor/CMakeLists.txt
 +++ b/vendor/CMakeLists.txt
 @@ -73,39 +73,54 @@ pkg_check_modules(libusb-1.0 REQUIRED IMPORTED_TARGET libusb-1.0)
